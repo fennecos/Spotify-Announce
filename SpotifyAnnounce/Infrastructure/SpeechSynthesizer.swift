@@ -11,21 +11,21 @@ import Cocoa
 extension String {
     
     var languageForString:String {
+        var language = "en_US"
         
-        if (self.characters.count == 0) {
-            return "en_US"
-        } else if (self.characters.count < 100) {
-            return CFStringTokenizerCopyBestStringLanguage(self as CFString, CFRangeMake(0, self.characters.count)) as String;
-        } else {
-            return CFStringTokenizerCopyBestStringLanguage(self as CFString, CFRangeMake(0, 100)) as String;
+        if !self.isEmpty {
+            let range = CFRangeMake(0, min(self.characters.count, 100))
+            if let bestLanguage =  CFStringTokenizerCopyBestStringLanguage(self as CFString, range) as String? {
+                language = bestLanguage
+            }
         }
+        return language
     }
 }
 
 extension NSSpeechSynthesizer {
     
     class func bestVoiceForString(string: String) -> String? {
-        
         let language = string.languageForString
         
         var voice: String?
@@ -33,7 +33,7 @@ extension NSSpeechSynthesizer {
         if  language.hasPrefix("en") {
             voice = NSSpeechSynthesizer.defaultVoice()
         } else {
-            voice = NSSpeechSynthesizer.availableVoices().filter() { NSSpeechSynthesizer.attributesForVoice($0)[NSVoiceLocaleIdentifier]!.hasPrefix(language) }.first ?? voice
+            voice = NSSpeechSynthesizer.availableVoices().filter() { NSSpeechSynthesizer.attributesForVoice($0)[NSVoiceLocaleIdentifier]?.hasPrefix(language) == true }.first ?? voice
         }
         
         return voice;
@@ -44,27 +44,21 @@ extension NSSpeechSynthesizer {
 extension MusicTrack {
     
     func announce(synthesizer: NSSpeechSynthesizer) {
+        var stringsToSpeak = [String]()
         
-        guard let artist = self.artist else {
-            return;
+        if let artist = artist {
+            stringsToSpeak.append(artist)
         }
-        
+        if let title = title {
+            stringsToSpeak.append(title)
+        }
+        let textToSpeak = stringsToSpeak.joinWithSeparator(", ")
+    
         let voice = findBestVoice()
         
         synthesizer.rate = 200;
         synthesizer.volume = 1;
         synthesizer.setVoice(voice)
-        
-        var textToSpeak = artist
-        if let title = self.title {
-            textToSpeak += ", " + title
-            
-            let voice = NSSpeechSynthesizer.bestVoiceForString(title)
-            synthesizer.setVoice(voice)
-        } else {
-            synthesizer.setVoice(nil)
-        }
-        
         synthesizer.startSpeakingString(textToSpeak)
     }
 
@@ -81,8 +75,7 @@ extension MusicTrack {
     }
     
     private func findBestVoice() -> String? {
-        
-        guard let title = self.title else {
+        guard let title = title else {
             return nil;
         }
         

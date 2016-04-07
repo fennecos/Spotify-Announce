@@ -60,7 +60,7 @@ extension MusicTrack {
         if
             let album = json["album"] as? [String: AnyObject],
             let images = album["images"] as? [[String: AnyObject]],
-            let smallestImage = images.sort({ (first, second) -> Bool in
+            let smallestImage = images.sort({ (first, second) in
                 guard let firstHeight = first["height"] as? Int, let secondHeight = second["height"] as? Int else {
                     return false
                 }
